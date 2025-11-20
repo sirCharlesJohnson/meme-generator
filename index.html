@@ -12,36 +12,46 @@
       <p1>Create custom memes with bundled templates or your own images.</p>
     </header>
     <main class="app-main">
-      <section class="controls-panel">
-        <div class="field-group">
-          <label for="templateSelect">Choose a template</label>
-          <select id="templateSelect">
-            <option value="" selected>Select a template</option>
-          </select>
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h2 class="sidebar-title">Templates</h2>
+          <div id="templateGallery" class="template-gallery"></div>
+        </div>
+        <div class="sidebar-section">
+          <label for="imageUpload" class="upload-label">
+            <span>Upload Image</span>
+            <input type="file" id="imageUpload" accept="image/*" />
+          </label>
+        </div>
+      </aside>
+
+      <section class="canvas-area">
+        <div class="canvas-wrapper">
+          <canvas id="memeCanvas" width="800" height="800" aria-label="Meme preview"></canvas>
+        </div>
+      </section>
+
+      <div class="utility-bar">
+        <div class="utility-group">
+          <label for="newText" class="utility-label">Add Text</label>
+          <div class="add-text-group">
+            <input type="text" id="newText" placeholder="Enter text here" />
+            <button id="addTextBtn" type="button">Add</button>
+          </div>
         </div>
 
-        <div class="field-group">
-          <label for="imageUpload">Or upload an image</label>
-          <input type="file" id="imageUpload" accept="image/*" />
+        <div class="utility-group">
+          <label class="utility-label">Text Blocks</label>
+          <div id="textList" class="text-list"></div>
         </div>
 
-        <div class="field-group">
-          <label for="topText">Top text</label>
-          <input type="text" id="topText" placeholder="TOP TEXT" />
-        </div>
-
-        <div class="field-group">
-          <label for="bottomText">Bottom text</label>
-          <input type="text" id="bottomText" placeholder="BOTTOM TEXT" />
-        </div>
-
-        <div class="field-group">
-          <label for="textSize">Text size</label>
+        <div class="utility-group">
+          <label for="textSize" class="utility-label">Size</label>
           <input type="range" id="textSize" min="20" max="120" value="48" />
         </div>
 
-        <div class="field-group">
-          <label for="textAlignment">Text alignment</label>
+        <div class="utility-group">
+          <label for="textAlignment" class="utility-label">Align</label>
           <select id="textAlignment">
             <option value="center" selected>Center</option>
             <option value="left">Left</option>
@@ -49,30 +59,25 @@
           </select>
         </div>
 
-        <div class="field-group">
-          <label for="lineSpacing">Line spacing</label>
+        <div class="utility-group">
+          <label for="lineSpacing" class="utility-label">Spacing</label>
           <input type="range" id="lineSpacing" min="1" max="2" value="1.1" step="0.05" />
         </div>
 
-        <div class="field-group">
-          <label for="textColor">Text color</label>
+        <div class="utility-group">
+          <label for="textColor" class="utility-label">Color</label>
           <input type="color" id="textColor" value="#ffffff" />
         </div>
 
-        <div class="field-group">
-          <label for="borderWidth">Border width</label>
+        <div class="utility-group">
+          <label for="borderWidth" class="utility-label">Border</label>
           <input type="range" id="borderWidth" min="2" max="20" value="4" />
         </div>
 
-        <button id="downloadBtn" disabled>Download Meme</button>
-      </section>
-
-      <section class="canvas-panel">
-        <div class="canvas-wrapper">
-          <canvas id="memeCanvas" width="800" height="800" aria-label="Meme preview"></canvas>
+        <div class="utility-group">
+          <button id="downloadBtn" class="download-btn" disabled>Download</button>
         </div>
-        <p class="canvas-help">Adjust text position by dragging directly on the canvas.</p>
-      </section>
+      </div>
     </main>
 
     <footer class="app-footer">
