@@ -54,9 +54,28 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Upload error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorDetails = error instanceof Error ? error.stack : String(error);
-    console.error('Error details:', errorDetails);
+    // Try to extract a useful error message from Cloudinary / unknown shapes
+    let errorMessage = 'Unknown error occurred';
+    try {
+      if (error instanceof Error && error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        const anyError = error as any;
+        if (anyError.message) {
+          errorMessage = String(anyError.message);
+        } else if (anyError.error && anyError.error.message) {
+          errorMessage = String(anyError.error.message);
+        } else {
+          errorMessage = JSON.stringify(anyError);
+        }
+      }
+    } catch {
+      // ignore JSON/stringify issues and fall back to default message
+    }
+    
+    console.error('Error details:', errorMessage);
     
     return NextResponse.json(
       { error: `Upload failed: ${errorMessage}` },
