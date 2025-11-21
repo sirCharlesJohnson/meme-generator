@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/instant';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 interface Meme {
@@ -11,6 +12,7 @@ interface Meme {
   userId: string;
   userEmail: string;
   createdAt: number;
+  editorState?: string;
 }
 
 interface Upvote {
@@ -27,7 +29,9 @@ interface MemeCardProps {
 }
 
 export function MemeCard({ meme, upvotes, currentUserId, onMemeClick }: MemeCardProps) {
+  const router = useRouter();
   const [isUpvoting, setIsUpvoting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   
   // Calculate upvote count and check if current user has upvoted
   const upvoteCount = upvotes.filter(u => u.memeId === meme.id).length;
@@ -73,6 +77,19 @@ export function MemeCard({ meme, upvotes, currentUserId, onMemeClick }: MemeCard
     return date.toLocaleDateString();
   };
 
+  const handleCopyLink = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (isCopying) return;
+    try {
+      setIsCopying(true);
+      await navigator.clipboard.writeText(meme.imageUrl);
+    } catch (err) {
+      console.error('Error copying link:', err);
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div 
@@ -91,40 +108,73 @@ export function MemeCard({ meme, upvotes, currentUserId, onMemeClick }: MemeCard
       <div className="p-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">{meme.title}</h3>
         
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">{meme.userEmail}</span>
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-sm text-gray-600 flex-1 min-w-0">
+            <span className="font-medium break-all">{meme.userEmail}</span>
             <span className="mx-2">•</span>
             <span>{formatDate(meme.createdAt)}</span>
           </div>
           
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleUpvote();
-            }}
-            disabled={isUpvoting}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors font-medium ${
-              hasUpvoted
-                ? 'bg-gray-900 text-white hover:bg-gray-800'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <svg
-              className="w-5 h-5"
-              fill={hasUpvoted ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const url = `/create?image=${encodeURIComponent(
+                  meme.imageUrl
+                )}&title=${encodeURIComponent(meme.title)}&fromMeme=${encodeURIComponent(
+                  meme.id
+                )}`;
+                router.push(url);
+              }}
+              className="px-3 py-1 text-xs font-medium bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 15l7-7 7 7"
-              />
-            </svg>
-            <span>{upvoteCount}</span>
-          </button>
+              Remix
+            </button>
+            <a
+              href={meme.imageUrl}
+              download
+              onClick={(e) => e.stopPropagation()}
+              className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Download
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              disabled={isCopying}
+              className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              {isCopying ? 'Copied' : 'Copy Link'}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleUpvote();
+              }}
+              disabled={isUpvoting}
+              className={`flex items-center gap-2 px-3 py-1 rounded-md transition-colors font-medium text-xs ${
+                hasUpvoted
+                  ? 'bg-gray-900 text-white hover:bg-gray-800'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <svg
+                className="w-4 h-4"
+                fill={hasUpvoted ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+              <span>{upvoteCount}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
