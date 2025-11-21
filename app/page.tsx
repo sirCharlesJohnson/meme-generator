@@ -10,6 +10,7 @@ export default function Home() {
   const router = useRouter();
   const { user } = db.useAuth();
   const [fullscreenMeme, setFullscreenMeme] = useState<any>(null);
+  const [view, setView] = useState<'all' | 'mine'>('all');
   
   // Query memes and upvotes
   const { isLoading, error, data } = db.useQuery({
@@ -63,7 +64,7 @@ export default function Home() {
         )}
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-900">Meme Feed</h2>
               <p className="text-gray-600 mt-1">Share and vote on the best memes</p>
@@ -74,6 +75,33 @@ export default function Home() {
             >
               Post a Meme
             </button>
+          </div>
+
+          <div className="flex justify-between items-center mb-6">
+            <div className="inline-flex rounded-md border border-gray-200 bg-gray-50 p-1">
+              <button
+                type="button"
+                onClick={() => setView('all')}
+                className={`px-3 py-1 text-sm rounded-md ${
+                  view === 'all'
+                    ? 'bg-white text-gray-900 shadow'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                All Memes
+              </button>
+              <button
+                type="button"
+                onClick={() => setView('mine')}
+                className={`ml-1 px-3 py-1 text-sm rounded-md ${
+                  view === 'mine'
+                    ? 'bg-white text-gray-900 shadow'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                My Gallery
+              </button>
+            </div>
           </div>
 
         {isLoading && (
@@ -117,7 +145,9 @@ export default function Home() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...data.memes]
+                {[...(view === 'mine'
+                  ? data.memes.filter((m: any) => m.userId === user.id)
+                  : data.memes)]
                   .sort((a: any, b: any) => {
                     // Sort by upvote count first, then by created date
                     const aUpvotes = data.upvotes.filter((u: any) => u.memeId === a.id).length;

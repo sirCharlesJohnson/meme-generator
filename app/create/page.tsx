@@ -112,9 +112,15 @@ export default function CreatePage() {
   };
 
   // If coming from a "Remix" action, pre-load the image and title once
-  const remixImage = searchParams.get('image');
+  const remixImageParam = searchParams.get('image');
   const remixTitle = searchParams.get('title');
   const remixFromMemeId = searchParams.get('fromMeme');
+  const remixImage =
+    remixImageParam && remixImageParam.startsWith('http')
+      ? remixImageParam
+      : remixImageParam
+      ? decodeURIComponent(remixImageParam)
+      : null;
 
   // Prefer restoring full editor state when remixing from an existing meme
   useEffect(() => {
@@ -124,7 +130,10 @@ export default function CreatePage() {
 
     try {
       const parsed = JSON.parse(meme.editorState as string);
-      const baseImage = parsed.baseImageUrl || meme.imageUrl;
+      const baseImage =
+        parsed.baseImageUrl && typeof parsed.baseImageUrl === 'string' && parsed.baseImageUrl.startsWith('http')
+          ? parsed.baseImageUrl
+          : meme.imageUrl;
       const elements = Array.isArray(parsed.textElements)
         ? parsed.textElements.map((t: any) => {
             const fontFamily: 'impact' | 'sans' | 'serif' =
@@ -211,6 +220,37 @@ export default function CreatePage() {
     };
     
     setTextElements(prev => prev.map(t => ({ ...t, isSelected: false })).concat(newElement));
+    setSelectedTextId(newElement.id);
+    renderTextElements();
+  };
+
+  const addPresetText = (position: 'top' | 'bottom') => {
+    if (!newText.trim()) return;
+
+    const canvas = textCanvasRef.current;
+    const width = canvas?.width ?? 800;
+    const height = canvas?.height ?? 600;
+
+    const y =
+      position === 'top'
+        ? Math.max(20, height * 0.05)
+        : Math.max(20, height * 0.85 - textFontSize);
+
+    const newElement: TextElement = {
+      id: crypto.randomUUID(),
+      text: newText,
+      x: width / 2,
+      y,
+      fontSize: textFontSize,
+      color: textColor,
+      isSelected: true,
+      fontFamily: textFontFamily,
+      align: 'center',
+    };
+
+    setTextElements((prev) =>
+      prev.map((t) => ({ ...t, isSelected: false })).concat(newElement),
+    );
     setSelectedTextId(newElement.id);
     renderTextElements();
   };
@@ -779,7 +819,8 @@ export default function CreatePage() {
       return;
     }
 
-    if (!file && !selectedTemplate) {
+    // Allow either: uploaded file, chosen template, or a preloaded remix/base image
+    if (!file && !selectedTemplate && !originalImageUrl) {
       setError('Please select an image or template');
       return;
     }
@@ -838,6 +879,37 @@ export default function CreatePage() {
         } else {
           imageToUpload = file;
         }
+      } else if (originalImageUrl) {
+        // Remixing an existing meme or using a preloaded image URL
+        if (hasText || hasDrawing) {
+          imageToUpload = await drawTextOnImage(originalImageUrl, true);
+        } else {
+          // Fetch remote image (likely existing Cloudinary URL) and convert to File
+          const response = await fetch(originalImageUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.statusText}`);
+          }
+
+          const blob = await response.blob();
+          const urlParts = originalImageUrl.split('/');
+          const lastPart = urlParts[urlParts.length - 1] || 'image.jpg';
+          const fileName = lastPart.split('?')[0] || 'image.jpg';
+
+          let mimeType = blob.type;
+          if (!mimeType || mimeType === 'application/octet-stream') {
+            if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) {
+              mimeType = 'image/jpeg';
+            } else if (fileName.endsWith('.png')) {
+              mimeType = 'image/png';
+            } else if (fileName.endsWith('.gif')) {
+              mimeType = 'image/gif';
+            } else {
+              mimeType = 'image/jpeg'; // default
+            }
+          }
+
+          imageToUpload = new File([blob], fileName, { type: mimeType });
+        }
       } else {
         throw new Error('No image selected');
       }
@@ -863,7 +935,8 @@ export default function CreatePage() {
       // Prepare editor state so memes can be remixed later
       const editorState = {
         version: 1,
-        baseImageUrl: originalImageUrl || imageUrl,
+        // Use the final Cloudinary URL as the durable base image for future remixes
+        baseImageUrl: imageUrl,
         textElements: textElements.map((t) => ({
           ...t,
           isSelected: false,
@@ -985,6 +1058,24 @@ export default function CreatePage() {
                       disabled={isUploading || !newText.trim()}
                     >
                       Add Text
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => addPresetText('top')}
+                      className="px-3 py-1 text-xs bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      disabled={isUploading || !newText.trim()}
+                    >
+                      Add as Top Caption
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addPresetText('bottom')}
+                      className="px-3 py-1 text-xs bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
+                      disabled={isUploading || !newText.trim()}
+                    >
+                      Add as Bottom Caption
                     </button>
                   </div>
                   <div className="flex items-center gap-4">
@@ -1204,19 +1295,11 @@ export default function CreatePage() {
                 )}
               </div>
               <div className="relative w-full h-96 bg-gray-100 rounded overflow-hidden">
-                {previewUrl.startsWith('blob:') ? (
+                {previewUrl && (
                   <img
                     src={previewUrl}
                     alt="Preview"
                     className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <Image
-                    src={previewUrl}
-                    alt="Preview"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 672px"
-                    className="object-contain"
                   />
                 )}
                 <canvas
