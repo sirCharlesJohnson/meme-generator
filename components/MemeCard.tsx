@@ -23,9 +23,10 @@ interface MemeCardProps {
   meme: Meme;
   upvotes: Upvote[];
   currentUserId: string;
+  onMemeClick?: () => void;
 }
 
-export function MemeCard({ meme, upvotes, currentUserId }: MemeCardProps) {
+export function MemeCard({ meme, upvotes, currentUserId, onMemeClick }: MemeCardProps) {
   const [isUpvoting, setIsUpvoting] = useState(false);
   
   // Calculate upvote count and check if current user has upvoted
@@ -74,7 +75,10 @@ export function MemeCard({ meme, upvotes, currentUserId }: MemeCardProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="relative w-full h-96">
+      <div 
+        className="relative w-full h-96 cursor-pointer"
+        onClick={onMemeClick}
+      >
         <Image
           src={meme.imageUrl}
           alt={meme.title}
@@ -95,7 +99,10 @@ export function MemeCard({ meme, upvotes, currentUserId }: MemeCardProps) {
           </div>
           
           <button
-            onClick={handleUpvote}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUpvote();
+            }}
             disabled={isUpvoting}
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors font-medium ${
               hasUpvoted

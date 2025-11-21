@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Configure Cloudinary (will be set per request to handle both env var formats)
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Cloudinary is configured
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+    
+    if (!cloudName || !apiKey || !apiSecret) {
+      console.error('Cloudinary configuration missing', {
+        cloudName: !!cloudName,
+        apiKey: !!apiKey,
+        apiSecret: !!apiSecret,
+      });
+      return NextResponse.json(
+        { error: 'Cloudinary configuration is missing. Please check your environment variables.' },
+        { status: 500 }
+      );
+    }
+
+    // Configure Cloudinary with the environment variables
+    cloudinary.config({
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
+    });
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -35,8 +54,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Upload error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorDetails = error instanceof Error ? error.stack : String(error);
+    console.error('Error details:', errorDetails);
+    
     return NextResponse.json(
-      { error: 'Upload failed' },
+      { error: `Upload failed: ${errorMessage}` },
       { status: 500 }
     );
   }

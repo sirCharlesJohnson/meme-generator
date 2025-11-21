@@ -3,10 +3,13 @@
 import { db } from '@/lib/instant';
 import { MemeCard } from '@/components/MemeCard';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import Image from 'next/image';
 
 export default function Home() {
   const router = useRouter();
   const { user } = db.useAuth();
+  const [fullscreenMeme, setFullscreenMeme] = useState<any>(null);
   
   // Query memes and upvotes
   const { isLoading, error, data } = db.useQuery({
@@ -19,19 +22,59 @@ export default function Home() {
   }
 
   return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">Meme Feed</h2>
-            <p className="text-gray-600 mt-1">Share and vote on the best memes</p>
-          </div>
-          <button
-            onClick={() => router.push('/create')}
-            className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors font-medium"
+      <>
+        {fullscreenMeme && (
+          <div
+            className="fixed inset-0 z-50 bg-black bg-opacity-95 flex items-center justify-center p-4"
+            onClick={() => setFullscreenMeme(null)}
           >
-            Post a Meme
-          </button>
-        </div>
+            <button
+              onClick={() => setFullscreenMeme(null)}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+              aria-label="Close"
+            >
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <div
+              className="relative w-full h-full max-w-7xl max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image
+                src={fullscreenMeme.imageUrl}
+                alt={fullscreenMeme.title}
+                fill
+                className="object-contain"
+                sizes="100vw"
+              />
+            </div>
+          </div>
+        )}
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Meme Feed</h2>
+              <p className="text-gray-600 mt-1">Share and vote on the best memes</p>
+            </div>
+            <button
+              onClick={() => router.push('/create')}
+              className="bg-gray-900 text-white px-6 py-3 rounded-md hover:bg-gray-800 transition-colors font-medium"
+            >
+              Post a Meme
+            </button>
+          </div>
 
         {isLoading && (
           <div className="text-center py-12">
@@ -92,6 +135,7 @@ export default function Home() {
                       meme={meme as any}
                       upvotes={data.upvotes as any}
                       currentUserId={user.id}
+                      onMemeClick={() => setFullscreenMeme(meme)}
                     />
                   ))}
               </div>
@@ -99,6 +143,7 @@ export default function Home() {
           </>
         )}
       </div>
+      </>
   );
 }
 
